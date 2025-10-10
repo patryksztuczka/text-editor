@@ -8,7 +8,7 @@
 int g_should_run = 1;
 
 void draw_gutter(WINDOW *win, size_t lines) {
-  for (int i = 0; i < lines; i++) {
+  for (int i = 0; i <= lines; i++) {
     wmove(win, i, 0);
     wprintw(win, "%d", i + 1);
   }
