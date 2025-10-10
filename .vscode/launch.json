@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug (cppdbg + LLDB)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/main",
+      "args": [],          // tu Twoje argumenty
+      "cwd": "${workspaceFolder}",
+      "MIMode": "lldb",
+      "stopAtEntry": false,
+      "externalConsole": true,        // WAŻNE: prawdziwy terminal do getch/wgetch
+      "preLaunchTask": "build"
+    }
+  ]
+}

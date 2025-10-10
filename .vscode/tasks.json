@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "mkdir -p build && gcc -g -O0 -Wall -Wextra -Wconversion main.c piece_table.c offsets_table.c utils.c -lncurses -o build/main",
+      "group": "build",
+      "problemMatcher": ["$gcc"]
+    }
+  ]
+}

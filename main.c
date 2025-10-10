@@ -1,11 +1,14 @@
+#include "offsets_table.h"
 #include "piece_table.h"
 #include <curses.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-void draw_gutter(WINDOW *win, int *lines) {
-  for (int i = 0; i < *lines; i++) {
+int g_should_run = 1;
+
+void draw_gutter(WINDOW *win, size_t lines) {
+  for (int i = 0; i < lines; i++) {
     wmove(win, i, 0);
     wprintw(win, "%d", i + 1);
   }
@@ -38,44 +41,18 @@ void handle_arrow_keys(WINDOW *win, int *y, int *x, int *ch) {
   wmove(win, *y, *x);
 }
 
-typedef struct {
-  int x_pos;
-  int y_pos;
-  int lines_count;
-  char text[100];
-  int text_len;
-} EditorState;
-
-void handle_functional_keys(WINDOW *win, int *ch, EditorState *state) {
+void handle_functional_keys(WINDOW *win, int *ch) {
   switch (*ch) {
   case 27: // ESC
+    g_should_run = 0;
     break;
-
   case 127: // BACKSPACE
-    if (state->x_pos > 0) {
-      memmove(&state->text[state->x_pos - 1], &state->text[state->x_pos],
-              state->text_len - (state->x_pos - 1));
-
-      state->text_len--;
-      state->x_pos--;
-
-      wmove(win, state->y_pos, state->x_pos);   // ustawiamy kursor
-      wclrtoeol(win);                           // czyścimy resztę linii
-      waddnstr(win, &state->text[state->x_pos], // rysujemy od miejsca zmiany
-               state->text_len - state->x_pos);
-      wmove(win, state->y_pos, state->x_pos); // wracamy kursorem
-      wrefresh(win);
-    }
     break;
   }
 }
 
-// static const EditorState CONFIG_DEFAULT = {
-//     .x_pos = 0,
-//     .y_pos = 0,
-//     .lines_count = 1,
-//     .text_len = 0,
-// };
+static const OffsetsTable OFFSETS_DEFAULT = {.line_offsets = NULL,
+                                             .lines_count = 0};
 
 int main(int argc, char **argv) {
   initscr();
@@ -101,63 +78,82 @@ int main(int argc, char **argv) {
   wnoutrefresh(textArea);
   doupdate();
 
-  FILE *fileptr = fopen(argv[1], "r");
-
-  if (!fileptr) {
-    wprintw(textArea, "Nie mogę otworzyć pliku");
-    return 1;
-  }
-
-  fseek(fileptr, 0, SEEK_END);
-  long size = ftell(fileptr);
-  rewind(fileptr);
-
-  char *buf = malloc(size + 1);
-
-  if (!buf) {
-    fclose(fileptr);
-    return 1;
-  }
-
-  fread(buf, 1, size, fileptr);
-  buf[size] = '\0';
+  OffsetsTable offsets = OFFSETS_DEFAULT;
 
   PieceTable piece_table;
   piece_table.original = NULL;
+  piece_table.add = NULL;
+  piece_table.pieces = NULL;
+  piece_table.pieces_len = 0;
 
-  // EditorState state = CONFIG_DEFAULT;
-  set_original(&piece_table, buf);
-  free(buf);
+  // if (argv[1]) {
+  //   FILE *fileptr = fopen(argv[1], "r");
+
+  //   if (!fileptr) {
+  //     wprintw(textArea, "Nie mogę otworzyć pliku");
+  //     return 1;
+  //   }
+
+  //   fseek(fileptr, 0, SEEK_END);
+  //   long size = ftell(fileptr);
+  //   rewind(fileptr);
+
+  //   char *buf = malloc(size + 1);
+
+  //   if (!buf) {
+  //     fclose(fileptr);
+  //     return 1;
+  //   }
+
+  //   fread(buf, 1, size, fileptr);
+  //   buf[size] = '\0';
+
+  //   set_original(&piece_table, buf);
+  //   print_pieces(textArea, &piece_table);
+  //   free(buf);
+
+  //   insert(&piece_table, 20, "went to the park and\n");
+  //   print_pieces(textArea, &piece_table);
+  //   wprintw(textArea, "%s ", piece_table.original);
+  // }
 
   int ch;
+  int cy, cx;
 
-  while (1) {
-    wprintw(textArea, "%s ", piece_table.original);
+  while (g_should_run) {
+
     ch = wgetch(textArea);
-    // if (is_arrow_key(&ch)) {
-    //   handle_arrow_keys(textArea, &state.y_pos, &state.x_pos, &ch);
-    // } else if (is_functional_key(&ch)) {
-    //   handle_functional_keys(textArea, &ch, &state);
-    // } else {
-    //   waddch(textArea, ch);
-    //   state.text[state.text_len] = ch;
-    //   state.text_len++;
-    //   if (ch == 10) {
-    //     state.x_pos = 0;
-    //     state.y_pos++;
-    //     state.lines_count++;
-    //     draw_gutter(gutter, &state.lines_count);
-    //   } else {
-    //     state.x_pos++;
-    //   }
-    // }
+    getyx(textArea, cy, cx);
+
+    if (is_arrow_key(&ch)) {
+      handle_arrow_keys(textArea, &cy, &cx, &ch);
+    } else if (is_functional_key(&ch)) {
+      handle_functional_keys(textArea, &ch);
+    } else {
+      char s[2] = {(char)ch, '\0'};
+      int offsets_sum = 0;
+      if (offsets.lines_count > 0) {
+        for (size_t i = 0; i < cy; i++) {
+          offsets_sum += offsets.line_offsets[i];
+        }
+      }
+      insert(&piece_table, cx + offsets_sum, s);
+      winsch(textArea, ch);
+      if (ch == 10) {
+        add_line_offset(&offsets, cx);
+        draw_gutter(gutter, offsets.lines_count);
+        wmove(textArea, cy + 1, 0);
+      } else {
+        wmove(textArea, cy, cx + 1);
+      }
+    }
   }
 
-  // FILE *fileptr = fopen("test.txt", "w");
+  FILE *fileptr = fopen("test.txt", "wb");
 
-  // fprintf(fileptr, "%s", state.text);
+  fprintf(fileptr, "%s", read_buffer(&piece_table));
 
-  // fclose(fileptr);
+  fclose(fileptr);
 
   delwin(textArea);
   delwin(gutter);
