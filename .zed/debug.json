@@ -1,0 +1,27 @@
+[
+  {
+    "adapter": "CodeLLDB",
+    "label": "C: build & debug (make)",
+    "request": "launch",
+    "program": "build/text_editor",
+    "cwd": ".",
+    "console": "integratedTerminal",
+    "stopOnEntry": false,
+    "build": {
+      "command": "make",
+      "args": ["all"]
+    }
+  },
+  {
+    "adapter": "CodeLLDB",
+    "label": "C: debug tests (make)",
+    "request": "launch",
+    "program": "build/test_all",
+    "cwd": ".",
+    "stopOnEntry": false,
+    "build": {
+      "command": "make",
+      "args": ["test"]
+    }
+  }
+]

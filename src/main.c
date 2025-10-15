@@ -82,7 +82,9 @@ int main(int argc, char **argv) {
 
   PieceTable piece_table;
   piece_table.original = NULL;
+  piece_table.original_len = 0;
   piece_table.add = NULL;
+  piece_table.add_len = 0;
   piece_table.pieces = NULL;
   piece_table.pieces_len = 0;
 

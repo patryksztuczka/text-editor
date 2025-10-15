@@ -1,0 +1,14 @@
+[
+  {
+    "label": "make-build",
+    "command": "make all"
+  },
+  {
+    "label": "make-clean",
+    "command": "make clean"
+  },
+  {
+    "label": "make-test",
+    "command": "make test"
+  }
+]
