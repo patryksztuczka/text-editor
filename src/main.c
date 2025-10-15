@@ -8,7 +8,7 @@
 int g_should_run = 1;
 
 void draw_gutter(WINDOW *win, size_t lines) {
-  for (int i = 0; i <= lines; i++) {
+  for (size_t i = 0; i <= lines; i++) {
     wmove(win, i, 0);
     wprintw(win, "%d", i + 1);
   }
@@ -140,7 +140,8 @@ int main(int argc, char **argv) {
         }
       }
       insert(&piece_table, cx + offsets_sum, s);
-      winsch(textArea, ch);
+      werase(textArea);
+      wprintw(textArea, "%s", read_buffer(&piece_table));
       if (ch == 10) {
         add_line_offset(&offsets, cx);
         draw_gutter(gutter, offsets.lines_count);
