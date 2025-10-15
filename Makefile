@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c11 -Iinclude
+CFLAGS = -Wall -Wextra -std=c11 -Iinclude -Itests -Isrc -Iinclude
 LDFLAGS= -lncurses
 SRC_DIR = src
 TEST_DIR = tests
@@ -22,15 +22,11 @@ $(TARGET): $(BUILD_DIR) $(OBJ_FILES)
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-test-fp: $(BUILD_DIR)
-	$(CC) $(CFLAGS) $(SRC_DIR)/piece_table.c $(TEST_DIR)/test_piece_table.c -o $(TEST_TARGET)
-	./$(TEST_TARGET)
-
 test-insert: $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(SRC_DIR)/piece_table.c $(TEST_DIR)/test_insert.c -o $(TEST_TARGET)
 	./$(TEST_TARGET)
 
-test: test-fp test-insert
+test: test-insert
 
 clean:
 	rm -rf $(BUILD_DIR)

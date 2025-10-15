@@ -36,7 +36,6 @@ static void test_insert_beginning_splits_left(void) {
   pt_init_empty(&pt);
   assert(insert(&pt, 0, "World"));
   assert(insert(&pt, 0, "Hello "));
-  printf("PIECES LEN: %d", pt.pieces_len);
   print_pieces(&pt);
   assert_piece(&pt, 0, 5, 6, ADD);
   assert_piece(&pt, 1, 0, 5, ADD);
