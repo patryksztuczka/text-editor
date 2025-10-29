@@ -21,7 +21,6 @@ typedef struct {
 } PieceTable;
 
 void set_original(PieceTable *piece_table, char *buf);
-void create_piece(char *buf);
 bool find_piece_at_index(PieceTable *pt, size_t idx, size_t *piece_idx,
                          size_t *offset_in_piece);
 void split_piece(const Piece *target, size_t offset, Piece *left_out,
@@ -31,7 +30,9 @@ bool insert_piece(PieceTable *pt, size_t target_idx, Piece *left, Piece *mid,
                   Piece *right);
 bool merge_adjacent_pieces(PieceTable *pt);
 bool insert(PieceTable *piece_table, size_t idx, char *s);
+bool find_pieces_in_range(PieceTable *pt, size_t idx, size_t length,
+                          size_t **indexes_ptr, size_t *count);
+bool delete(PieceTable *pt, size_t idx, size_t length);
 char *read_buffer(PieceTable *piece_table);
-void print_pieces(const PieceTable *pt);
 
 #endif

@@ -8,6 +8,7 @@ typedef struct {
   size_t lines_count;
 } OffsetsTable;
 
-void add_line_offset(OffsetsTable *table, size_t new_offset);
+void add_line_offset(OffsetsTable *ot, size_t new_offset);
+size_t get_offset(OffsetsTable const *ot, size_t y);
 
 #endif

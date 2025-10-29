@@ -21,21 +21,47 @@ int is_arrow_key(int *ch) {
          *ch == KEY_RIGHT;
 }
 
-int is_functional_key(int *ch) { return *ch == 27 || *ch == 127; }
+int is_functional_key(int *ch) { return *ch == 27; }
 
-void handle_arrow_keys(WINDOW *win, int *y, int *x, int *ch) {
+int get_line_length(OffsetsTable *ot, int line) {
+  if (line > ot->lines_count) {
+    return -1;
+  }
+
+  if (line == 0) {
+    return ot->line_offsets[0] - 1;
+  }
+
+  size_t line_offset = ot->line_offsets[line];
+  size_t prev_line_offset = ot->line_offsets[line - 1];
+
+  return line_offset - prev_line_offset - 1;
+}
+
+void handle_arrow_keys(WINDOW *win, OffsetsTable *ot, int *y, int *x, int *ch,
+                       int *current_line_len) {
   switch (*ch) {
   case KEY_UP:
-    (*y)--;
+    if (*y > 0) {
+      *current_line_len = get_line_length(ot, *y);
+      (*y)--;
+    }
     break;
   case KEY_DOWN:
-    (*y)++;
+    if (*y < ot->lines_count) {
+      *current_line_len = get_line_length(ot, *y);
+      (*y)++;
+    }
     break;
   case KEY_LEFT:
-    (*x)--;
+    if (*x > 0) {
+      (*x)--;
+    }
     break;
   case KEY_RIGHT:
-    (*x)++;
+    if (*x < *current_line_len) {
+      (*x)++;
+    }
     break;
   }
   wmove(win, *y, *x);
@@ -46,8 +72,8 @@ void handle_functional_keys(WINDOW *win, int *ch) {
   case 27: // ESC
     g_should_run = 0;
     break;
-  case 127: // BACKSPACE
-    break;
+    // case 127: // BACKSPACE
+    //   break;
   }
 }
 
@@ -59,7 +85,7 @@ int main(int argc, char **argv) {
   start_color();
   cbreak();
   noecho();
-  curs_set(1); // what's this??
+  curs_set(1);
   use_default_colors();
 
   init_pair(1, COLOR_RED, COLOR_WHITE);
@@ -121,6 +147,7 @@ int main(int argc, char **argv) {
 
   int ch;
   int cy, cx;
+  int current_line_len = 0;
 
   while (g_should_run) {
 
@@ -128,26 +155,34 @@ int main(int argc, char **argv) {
     getyx(textArea, cy, cx);
 
     if (is_arrow_key(&ch)) {
-      handle_arrow_keys(textArea, &cy, &cx, &ch);
+      handle_arrow_keys(textArea, &offsets, &cy, &cx, &ch, &current_line_len);
     } else if (is_functional_key(&ch)) {
       handle_functional_keys(textArea, &ch);
     } else {
       char s[2] = {(char)ch, '\0'};
-      int offsets_sum = 0;
-      if (offsets.lines_count > 0) {
-        for (size_t i = 0; i < cy; i++) {
-          offsets_sum += offsets.line_offsets[i];
-        }
-      }
-      insert(&piece_table, cx + offsets_sum, s);
-      werase(textArea);
-      wprintw(textArea, "%s", read_buffer(&piece_table));
+      size_t offset = get_offset(&offsets, cy);
       if (ch == 10) {
+        insert(&piece_table, cx + offset, s);
+        werase(textArea);
+        wprintw(textArea, "%s", read_buffer(&piece_table));
         add_line_offset(&offsets, cx);
         draw_gutter(gutter, offsets.lines_count);
         wmove(textArea, cy + 1, 0);
+        current_line_len = 0;
+      } else if (ch == 127) {
+        bool ok = delete (&piece_table, cx + offset - 1, 1);
+        if (!ok)
+          continue;
+        werase(textArea);
+        wprintw(textArea, "%s", read_buffer(&piece_table));
+        wmove(textArea, cy, cx - 1);
+        current_line_len--;
       } else {
+        insert(&piece_table, cx + offset, s);
+        werase(textArea);
+        wprintw(textArea, "%s", read_buffer(&piece_table));
         wmove(textArea, cy, cx + 1);
+        current_line_len++;
       }
     }
   }

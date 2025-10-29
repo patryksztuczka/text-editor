@@ -135,7 +135,7 @@ bool merge_adjacent_pieces(PieceTable *pt) {
     Piece *curr = &pt->pieces[i];
 
     if (prev->source == curr->source && prev->source == ADD &&
-        curr->source == ADD && prev->start + prev->length == curr->length) {
+        curr->source == ADD && prev->start + prev->length == curr->start) {
       prev->length += curr->length;
     } else {
       write_idx++;
@@ -193,6 +193,91 @@ bool insert(PieceTable *pt, size_t idx, char *s) {
   return true;
 }
 
+bool find_pieces_in_range(PieceTable *pt, size_t idx, size_t length,
+                          size_t **indexes_ptr, size_t *count) {
+  size_t cumulative_length = 0;
+
+  for (size_t i = 0; i < pt->pieces_len; i++) {
+    Piece *p = &pt->pieces[i];
+
+    if (idx < cumulative_length + p->length) {
+      size_t *tmp = realloc(*indexes_ptr, (*count + 1) * sizeof(size_t));
+      if (!tmp) {
+        return false;
+      }
+      *indexes_ptr = tmp;
+      (*indexes_ptr)[*count] = i;
+      *count += 1;
+      if (cumulative_length + p->length >= length)
+        return true;
+    }
+    cumulative_length += p->length;
+  }
+
+  return false;
+}
+
+bool delete(PieceTable *pt, size_t idx, size_t length) {
+  if (!pt || length <= 0) {
+    return false;
+  }
+
+  size_t *pieces_indexes = NULL;
+  size_t pieces_count = 0;
+  if (!find_pieces_in_range(pt, idx, length, &pieces_indexes, &pieces_count)) {
+    return false;
+  }
+
+  size_t to_delete = length;
+  size_t cumulative_len = 0;
+
+  for (size_t i = 0; i < pieces_count; i++) {
+    Piece left, right;
+    size_t target_idx = pieces_indexes[i];
+    Piece target = pt->pieces[target_idx];
+    size_t offset_in_piece = idx - cumulative_len;
+    size_t available_to_del_in_piece = target.length - offset_in_piece;
+    size_t to_del_in_piece = available_to_del_in_piece > to_delete
+                                 ? to_delete
+                                 : available_to_del_in_piece;
+
+    if (offset_in_piece == 0 && to_del_in_piece == target.length) {
+      left = (Piece){0};
+      right = (Piece){0};
+    } else if (offset_in_piece == 0 && to_del_in_piece < target.length) {
+      left = (Piece){0};
+      right.start = offset_in_piece + to_del_in_piece;
+      right.length = target.length - to_del_in_piece;
+      right.source = target.source;
+    } else if (offset_in_piece + to_del_in_piece < target.length) {
+      left.start = target.start;
+      left.length = offset_in_piece;
+      left.source = target.source;
+      right.start = offset_in_piece + to_del_in_piece;
+      right.length = target.length - right.length - to_del_in_piece;
+      right.source = target.source;
+    } else {
+      left.start = target.start;
+      left.length = target.length - to_del_in_piece;
+      left.source = target.source;
+      right = (Piece){0};
+    }
+
+    to_delete -= to_del_in_piece;
+    idx += to_del_in_piece;
+
+    if (!insert_piece(pt, target_idx, &left, &(Piece){0}, &right)) {
+      return false;
+    }
+
+    if (!merge_adjacent_pieces(pt)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 char *read_buffer(PieceTable *pt) {
   if (!pt || pt->pieces_len == 0) {
     // pusty dokument
@@ -229,11 +314,4 @@ char *read_buffer(PieceTable *pt) {
   // 4) zakończ NUL-em
   buf[off] = '\0';
   return buf; // caller: free(buf)
-}
-
-void print_pieces(const PieceTable *pt) {
-  for (size_t i = 0; i < pt->pieces_len; i++) {
-    printf("Piece %d; Start: %d; Len: %d", i, pt->pieces[i].start,
-           pt->pieces[i].length);
-  }
 }

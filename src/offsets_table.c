@@ -15,3 +15,13 @@ void add_line_offset(OffsetsTable *table, size_t new_offset) {
   table->line_offsets[table->lines_count] = new_offset + 1;
   table->lines_count = new_count;
 }
+
+size_t get_offset(const OffsetsTable *ot, size_t y) {
+  size_t offset = 0;
+  if (ot->lines_count > 0) {
+    for (size_t i = 0; i < y; i++) {
+      offset += ot->line_offsets[i];
+    }
+  }
+  return offset;
+}

@@ -20,29 +20,23 @@ static void assert_piece(PieceTable *pt, size_t idx, size_t start, size_t len,
   assert(pt->pieces[idx].source == src);
 }
 
-static void test_insert_empty_creates_add_piece(void) {
+static void test_find_pieces_in_range(void) {
   PieceTable pt;
   pt_init_empty(&pt);
-  bool ok = insert(&pt, 0, "Hello");
-  assert(ok);
-  assert_piece(&pt, 0, 0, 5, ADD);
-  assert(pt.add_len == 5);
-  assert(strcmp(pt.add, "Hello") == 0);
-  assert(total_len(&pt) == 5);
-}
+  insert(&pt, 0, "Ala");
+  insert(&pt, 3, "kota");
+  insert(&pt, 3, " ma ");
+  assert(total_len(&pt) == 11);
 
-static void test_insert_beginning_splits_left(void) {
-  PieceTable pt;
-  pt_init_empty(&pt);
-  assert(insert(&pt, 0, "World"));
-  assert(insert(&pt, 0, "Hello "));
-  assert_piece(&pt, 0, 5, 6, ADD);
-  assert_piece(&pt, 1, 0, 5, ADD);
+  size_t *pieces_indexes = NULL;
+  size_t pieces_count = 0;
+  find_pieces_in_range(&pt, 2, 5, &pieces_indexes, &pieces_count);
+  assert(pieces_indexes[0] == 0 && pieces_indexes[1] == 1);
+  assert(pieces_count == 2);
 }
 
 int main(void) {
-  test_insert_empty_creates_add_piece();
-  test_insert_beginning_splits_left();
+  test_find_pieces_in_range();
   printf("All insert tests passed!");
   return 0;
 }
